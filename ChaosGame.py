@@ -19,7 +19,7 @@ from scipy.sparse import coo_matrix
 def GenerateFractal(image_name=None):
 
     if image_name is None:
-        seed = 10
+        seed = np.random.randint(1000) #611 #10 #47 #88
         np.random.seed(seed)
         image_name = 'fractal-' + str(seed) + '.png'
 
@@ -102,8 +102,8 @@ def GenerateFractal(image_name=None):
 
     fig_dim = 2000.0/DPI
     markershape = 's'
-    markersize = (3*72.0/DPI)**2 # 3 pixels wide? (markersize in square points)
-    alphaval = 0.9
+    markersize = (3.1*72.0/DPI)**2 # 3 pixels wide? (markersize in square points)
+    alphaval = 1.0
     min_shift = 1e-2
 
 #    alphaval = 0.4
@@ -140,7 +140,7 @@ def GenerateFractal(image_name=None):
     plt.xticks([])
     plt.yticks([])
     plt.axis('off')
-    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/5)
+    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/6)
 
 #    # imshow
 #    # Consistent, good to check against
