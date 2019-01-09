@@ -11,15 +11,13 @@ Related to Sierpinski triangle
 Plots and saves to PNG
 """
 
-import math
 import numpy as np
 import matplotlib.pyplot as plt
-from scipy.sparse import coo_matrix
 
 def GenerateFractal(image_name=None):
 
     if image_name is None:
-        seed = np.random.randint(1000) #611 #10 #47 #88
+        seed = 10 #np.random.randint(1000) #611 #10 #47 #88
         np.random.seed(seed)
         image_name = 'fractal-' + str(seed) + '.png'
 
@@ -82,16 +80,14 @@ def GenerateFractal(image_name=None):
         # Since the components of the points are all in the range [0,1],
         # floor the product of the point coordinate with the number of grid points
         # (and make sure that it's in the index range)
-        x_coor = min(n_grid-1, math.floor(n_grid*point[0]))
-        y_coor = min(n_grid-1, math.floor(n_grid*point[1]))
+        x_coor = int(min(n_grid-1, np.floor(n_grid*point[0])))
+        y_coor = int(min(n_grid-1, np.floor(n_grid*point[1])))
         density[y_coor][x_coor] += 1
     # end k loop
 
     # sparse version of density matrix is useful
-    density_sp = coo_matrix(density)
-    rows = density_sp.row
-    cols = density_sp.col
-    vals = density_sp.data
+    (rows,cols) = np.nonzero(density)
+    vals = density[(rows,cols)]
 
     # Plot
     # Could do a simple imshow; all this is to get a particular look
