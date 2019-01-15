@@ -14,21 +14,22 @@ Plots and saves to PNG
 import numpy as np
 import matplotlib.pyplot as plt
 
-def GenerateFractal(image_name=None):
+def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
 
     if image_name is None:
-        seed = 10 #np.random.randint(1000) #611 #10 #47 #88
+        # For reproducibility while testing
+        seed = np.random.randint(1000) #10 47 88 161 611 870
         np.random.seed(seed)
         image_name = 'fractal-' + str(seed) + '.png'
 
     # Sizing parameters
     # n_dimensions controls dimension of the space
-    # n_maxIterations controls how many points are generated
+    # n_Iterations controls how many points are generated
     # n_basisPoints controls how many basis points there are
     # n_grid controls the resolution of the plot
     n_dimensions = 2
-    n_Iterations = int(4e6) #int(4e6)
-    n_basisPoints = np.random.randint(3,8)
+    n_Iterations = int(n_Iterations)
+    n_basisPoints = np.random.randint(3,7)
     n_grid = 1000
     
     # Set basis points of the game - RANDOM
@@ -55,6 +56,10 @@ def GenerateFractal(image_name=None):
     # Set fraction of distance to each basis point to move - RANDOM
     moveFrac = np.random.rand(n_basisPoints)
 
+#    print(basis)
+#    print(moveFrac)
+#    print(cumulProb)
+
     # Initial point: can be any point in unit hypercube,
     # but first basis point works fine
     point = basis[0]
@@ -62,6 +67,9 @@ def GenerateFractal(image_name=None):
     # Create matrix to hold the density data
     density = np.zeros((n_grid,n_grid))
     
+    if verbose:
+        print("Starting chaos game iteration")
+
     # Generate more points in loop
     for k in range(n_Iterations) :
         # Pick a basis point according to the weighting:
@@ -85,43 +93,55 @@ def GenerateFractal(image_name=None):
         density[y_coor][x_coor] += 1
     # end k loop
 
+    if verbose:
+        print("Done iterating")
+
     # sparse version of density matrix is useful
     (rows,cols) = np.nonzero(density)
     vals = density[(rows,cols)]
 
-    # Plot
-    # Could do a simple imshow; all this is to get a particular look
-
-    # DPI doesn't really seem to matter,
-    # but getting the right marker size to avoid aliasing maybe takes some effort
+    # Plotting parameters
+    # All this is to get a particular look with a scatterplot
+    # DPI and fig_dim don't matter much;
+    #   they are defined so we always get a 2000x2000 pixel image
+    # But there is an interaction between DPI and marker size
+    #   and the right marker size is required to avoid aliasing
+    # DPI : dots per inch
+    # fig_dim : figure dimension in inches
+    # markershape : Shape of marker in scatterplot. 's' = square
+    # markersize : Marker size in square points
+    # alphaval : Alpha channel value for markers
+    # min_frac : controls minimum value for colormap of scatterplot
+    #   min_frac = 0 : full colormap spectrum is used
+    #   min_frac = 1 : half of colormap spectrum is used
     DPI = 100
-
     fig_dim = 2000.0/DPI
     markershape = 's'
-    markersize = (3.1*72.0/DPI)**2 # 3 pixels wide? (markersize in square points)
+    markersize = (3.1*72.0/DPI)**2 # 3.1 pixels wide?
     alphaval = 1.0
-    min_shift = 1e-2
+    # white is the minimum value for these
+    colormaps = ['YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
+                 'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn']
+    # something other than white is min
+    specialmaps = ['cool','plasma']
 
-#    alphaval = 0.4
-#    min_shift = 1e-2
-#    # diamond
-#    markershape = 'D'
-#    fig_dim = 2000.0/DPI
-#    markersize = 6
-#    # "pixel" marker (basically square)
-#    markershape = ','
-#    fig_dim = 1700.0/DPI
-#    markersize = 8.1
-#    # square
-#    markershape = 's'
-#    fig_dim = 1600/DPI # pad_inches = fig_dim/4
-#    markersize = 7.4
+    # Every once in a while, add a pop of color
+    if np.random.rand() < 0.15:
+        # These colormaps can use the full spectrum
+        colormap = specialmaps[np.random.randint(len(specialmaps))]
+        min_frac = 0
+    else:
+        # idea here: if the scatterplot takes up a fair amount of the plot area,
+        # allow a finer color gradation
+        colormap = 'Greys'
+        min_frac = max(0, 0.70 - len(vals)/float(n_grid**2))
+#        print(min_frac)
 
     # Map density values thru log
     # (log of density seems to produce more interesting image);
     # set minimum value for setting colormap
     logvals = np.log(vals)
-    minv    = np.log(min_shift)
+    minv    = -min_frac*max(logvals)
 
     # order the points so that darker points (higher values) are plotted last and on top
     ordering = np.argsort(logvals)
@@ -129,9 +149,12 @@ def GenerateFractal(image_name=None):
     cols = cols[ordering]
     logvals = logvals[ordering]
 
-    plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI, frameon=False)
+    if verbose:
+        print("Plotting")
+
+    fig = plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI, frameon=False)
     plt.scatter(cols,rows, c=logvals, s=markersize,marker=markershape,linewidths=0,\
-                    cmap='Greys',norm=None,vmin=minv,alpha=alphaval)
+                    cmap=colormap,norm=None,vmin=minv,alpha=alphaval)
     plt.axis([0,n_grid,0,n_grid], 'equal')
     plt.xticks([])
     plt.yticks([])
@@ -159,4 +182,4 @@ def GenerateFractal(image_name=None):
 
 
 if __name__ == "__main__":
-    GenerateFractal()
+    GenerateFractal(None, 5e5)
