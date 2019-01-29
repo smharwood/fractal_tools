@@ -10,7 +10,7 @@ Generates points by an iterative bisection game:
 Related to Sierpinski triangle
 Plots and saves to PNG
 """
-
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -128,14 +128,13 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     # Every once in a while, add a pop of color
     if np.random.rand() < 0.15:
         # These colormaps can use the full spectrum
-        colormap = specialmaps[np.random.randint(len(specialmaps))]
+        colormap = random.choice(specialmaps)
         min_frac = 0
     else:
         # idea here: if the scatterplot takes up a fair amount of the plot area,
         # allow a finer color gradation
         colormap = 'Greys'
         min_frac = max(0, 0.70 - len(vals)/float(n_grid**2))
-#        print(min_frac)
 
     # Map density values thru log
     # (log of density seems to produce more interesting image);
