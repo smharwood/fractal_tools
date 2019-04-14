@@ -126,7 +126,7 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     specialmaps = ['cool','plasma']
 
     # Every once in a while, add a pop of color
-    if np.random.rand() < 0.15:
+    if np.random.rand() < 0.25:
         # These colormaps can use the full spectrum
         colormap = random.choice(specialmaps)
         min_frac = 0
@@ -159,6 +159,7 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     plt.yticks([])
     plt.axis('off')
     plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/6)
+    plt.close() # to avoid memory issues in a loop
 
 #    # imshow
 #    # Consistent, good to check against
