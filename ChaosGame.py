@@ -12,7 +12,9 @@ Plots and saves to PNG
 """
 import random
 import numpy as np
+import matplotlib
 import matplotlib.pyplot as plt
+matplotlib.use('agg')
 
 def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
 
@@ -151,8 +153,8 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     if verbose:
         print("Plotting")
 
-    fig = plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI, frameon=False)
-    plt.scatter(cols,rows, c=logvals, s=markersize,marker=markershape,linewidths=0,\
+    fig = plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI)
+    plt.scatter(cols,rows, c=logvals,s=markersize,marker=markershape,linewidths=0,\
                     cmap=colormap,norm=None,vmin=minv,alpha=alphaval)
     plt.axis([0,n_grid,0,n_grid], 'equal')
     plt.xticks([])
@@ -170,15 +172,6 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
 #    plt.yticks([])
 #    plt.axis('off')
 #    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/4)
-
-#    # could also write gnuplot code to automate plotting
-#    with open('density.dat','w') as f:
-#        for i in range(len(vals)):
-#            f.write('{}, {}, {}\n'.format(rows[i],cols[i],vals[i]))
-#    with open('plotCode.gp','w') as f:
-#        f.write('inputName = \'density.dat\'\n')
-#        f.write('outputName = \''+image_name+'\'')
-#    #call(['gnuplot','plotDensity.gp']) 
 
 
 if __name__ == "__main__":
