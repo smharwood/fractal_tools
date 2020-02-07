@@ -72,15 +72,12 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     if verbose:
         print("Starting chaos game iteration")
 
-    # Generate more points in loop
-    for k in range(n_Iterations) :
-        # Pick a basis point according to the weighting:
-        #   generate random number uniformly in [0,1)
-        #   find first index/basis point with cumulative probability
-        #   greater than random uniform
-        p = np.random.random()
-        i = np.argmax(p < cumulProb)
+    # Choose sequence of basis points according to the weighting prob
+    # Could do this manually by inverse CDF transform, but this is faster
+    basis_sequence = np.random.choice(np.arange(n_basisPoints), p=prob, size=n_Iterations)
 
+    # Generate more points in loop
+    for i in basis_sequence:
         # Calculate point:
         #   some fraction of distance between previous point and basis point i
         point = (1-moveFrac[i])*point + moveFrac[i]*basis[i]
