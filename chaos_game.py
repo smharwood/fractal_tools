@@ -12,12 +12,12 @@ Plots and saves to PNG
 """
 import random
 import numpy as np
-import matplotlib
 import matplotlib.pyplot as plt
-matplotlib.use('agg')
+#import matplotlib
+#matplotlib.use('agg')
 
-def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
-
+def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
+    """ Play the chaos game / generate a fractal"""
     if image_name is None:
         # For reproducibility while testing
         seed = np.random.randint(1000) #10 47 88 161 611 870
@@ -26,11 +26,11 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
 
     # Sizing parameters
     # n_dimensions controls dimension of the space
-    # n_Iterations controls how many points are generated
+    # n_iter controls how many points are generated
     # n_basisPoints controls how many basis points there are
     # n_grid controls the resolution of the plot
     n_dimensions = 2
-    n_Iterations = int(n_Iterations)
+    n_iter = int(n_iter)
     n_basisPoints = np.random.randint(3,7)
     n_grid = 1000
     
@@ -58,9 +58,10 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     # Set fraction of distance to each basis point to move - RANDOM
     moveFrac = np.random.rand(n_basisPoints)
 
-#    print(basis)
-#    print(moveFrac)
-#    print(cumulProb)
+    if verbose:
+        print("Basis: " + str(basis))
+        print("Move Fractions: "+str(moveFrac))
+        print("Probabilities: "+str(cumulProb))
 
     # Initial point: can be any point in unit hypercube,
     # but first basis point works fine
@@ -74,7 +75,14 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
 
     # Choose sequence of basis points according to the weighting prob
     # Could do this manually by inverse CDF transform, but this is faster
-    basis_sequence = np.random.choice(np.arange(n_basisPoints), p=prob, size=n_Iterations)
+    basis_sequence_full = np.random.choice(np.arange(n_basisPoints), p=prob, size=n_iter)
+
+    # Sequence filtering does some interesting stuff in certain situations...
+    if False:
+        basis_sequence = [basis_sequence_full[i] for i in range(1,len(basis_sequence_full)) 
+                        if basis_sequence_full[i] != basis_sequence_full[i-1] ]
+    else:
+        basis_sequence = basis_sequence_full
 
     # Generate more points in loop
     for i in basis_sequence:
@@ -118,9 +126,6 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
     markershape = 's'
     markersize = (3.1*72.0/DPI)**2 # 3.1 pixels wide?
     alphaval = 1.0
-    # white is the minimum value for these
-    colormaps = ['YlOrBr', 'YlOrRd', 'OrRd', 'PuRd', 'RdPu', 'BuPu',
-                 'GnBu', 'PuBu', 'YlGnBu', 'PuBuGn', 'BuGn']
     # something other than white is min
     specialmaps = ['cool','plasma']
 
@@ -151,25 +156,22 @@ def GenerateFractal(image_name=None,n_Iterations=4e6,verbose=False):
         print("Plotting")
 
     fig = plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI)
-    plt.scatter(cols,rows, c=logvals,s=markersize,marker=markershape,linewidths=0,\
-                    cmap=colormap,norm=None,vmin=minv,alpha=alphaval)
+    plt.scatter(cols, rows, c=logvals,
+        s=markersize,
+        marker=markershape,
+        linewidths=0,
+        cmap=colormap,
+        vmin=minv,
+        norm=None,
+        alpha=alphaval)
     plt.axis([0,n_grid,0,n_grid], 'equal')
     plt.xticks([])
     plt.yticks([])
     plt.axis('off')
     plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/6)
     plt.close() # to avoid memory issues in a loop
-
-#    # imshow
-#    # Consistent, good to check against
-#    log_density = np.log(density + min_shift)
-#    plt.figure(figsize=(fig_dim,fig_dim),dpi=DPI, frameon=False)
-#    plt.imshow(log_density, cmap='Greys',origin='lower',interpolation='hamming')
-#    plt.xticks([])
-#    plt.yticks([])
-#    plt.axis('off')
-#    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/4)
+    return
 
 
 if __name__ == "__main__":
-    GenerateFractal(None, 5e5)
+    generate_chaos(None, 5e5, True)
