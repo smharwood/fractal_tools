@@ -12,14 +12,12 @@ def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
     """ Sample complex plane, look for an interesting spot to zoom in """
    
     # ZOOM
+    level = np.random.randint(4,7)
+    print(level)
     n_samples = int(np.sqrt(100))
     # these work fairly well
     best_point = -1.0 + (1/3.0)*1j
     best_point = -0.5 + 0.5*1j
-    zoom = 0.33
-    zoom_factor = 1.5
-    zoom_levels = 20
-    # testing:
     # TODO: adaptively zoom;
     # maybe zoom more aggressively when there is more of the set nearby
     # or maybe zoom in on points in the set?
@@ -28,7 +26,7 @@ def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
     zoom_factor = 2.0
     zoom_levels = 20
     for i in range(zoom_levels):
-        print(zoom)
+        print("Zoom: {} at {}".format(zoom,best_point))
         x_samples = best_point.real + zoom*(np.random.rand(n_samples)-0.5)
         y_samples = best_point.imag + zoom*(np.random.rand(n_samples)-0.5)
         xmesh, ymesh = np.meshgrid(x_samples, y_samples)
@@ -49,7 +47,7 @@ def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
         best_index = np.argmin(np.mean(distances, axis=1))
         best_point = in_set[best_index]
         zoom /= zoom_factor
-        if zoom < 1e-4:
+        if zoom < 10**(-level):
             break
 
     # number of image pixels (on a edge)
@@ -59,7 +57,7 @@ def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
     ys = np.linspace(best_point.imag-zoom, best_point.imag+zoom, n_grid)
     xmesh, ymesh = np.meshgrid(xs, ys)
     points = xmesh + ymesh*1j
-    values = mandelbrot_iteration_optimized(points, 5*max_iter)
+    values = mandelbrot_iteration_optimized(points, (level-2)*max_iter)
     grid = np.log(values)
     plot(grid, image_name)
     return
@@ -70,7 +68,7 @@ def mandelbrot_iteration_optimized(points, max_iter):
     points: np.array with complex entries
     """
     output = np.zeros(points.shape)
-    z = np.zeros(points.shape, np.complex64)
+    z = np.zeros(points.shape, np.complex128)
     for it in range(max_iter):
         notdone = np.less(z.real*z.real + z.imag*z.imag, 4.0)
         output[notdone] = it + 1

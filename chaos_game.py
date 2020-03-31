@@ -13,8 +13,6 @@ Plots and saves to PNG
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-#import matplotlib
-#matplotlib.use('agg')
 
 def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     """ Play the chaos game / generate a fractal"""
@@ -78,11 +76,12 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     basis_sequence_full = np.random.choice(np.arange(n_basisPoints), p=prob, size=n_iter)
 
     # Sequence filtering does some interesting stuff in certain situations...
-    if False:
-        basis_sequence = [basis_sequence_full[i] for i in range(1,len(basis_sequence_full)) 
-                        if basis_sequence_full[i] != basis_sequence_full[i-1] ]
-    else:
+    if True:
         basis_sequence = basis_sequence_full
+    else:
+        basis_sequence = [basis_sequence_full[i] \
+                          for i in range(1,len(basis_sequence_full)) \
+                          if basis_sequence_full[i] != basis_sequence_full[i-1] ]
 
     # Generate more points in loop
     for i in basis_sequence:
@@ -99,16 +98,52 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
         y_coor = int(min(n_grid-1, np.floor(n_grid*point[1])))
         density[y_coor][x_coor] += 1
     # end k loop
-
     if verbose:
         print("Done iterating")
 
-    # sparse version of density matrix is useful
+    # Plot
+    if verbose:
+        print("Plotting")
+    plotter(density, image_name)
+    return
+
+def plotter(density, image_name):
+    """ Plot in a specific way """
+
+    # Colormaps where something other than white is min
+    specialmaps1 = ['plasma', 'cool']
+    specialmaps2 = ['spring', 'cool_r', 'spring_r']
+    n_grid = density.shape[0]
+
+    # sparse version of density matrix is useful;
+    # also, map thru log
     (rows,cols) = np.nonzero(density)
-    vals = density[(rows,cols)]
+    vals = np.log(density[(rows,cols)])
+
+    # Order the points so that higher values are plotted last and on top
+    ordering = np.argsort(vals)
+    rows = rows[ordering]
+    cols = cols[ordering]
+    vals = vals[ordering]
+
+    # Try to classify/guess what the fractal will be like: 
+    # Fraction of plot area that fractal takes up
+    area_frac = len(vals)/float(n_grid**2)
+    standard = True
+    vmin = 0.0
+    if area_frac < 0.01:
+        # Probably uninteresting. Punch it up!
+        colormap = random.choice(specialmaps2)
+        standard = False
+    elif area_frac < 0.10:
+        colormap = random.choice(specialmaps1)
+    else:
+        # Classic bot
+        # use only about 2/3 of Greys colormap
+        colormap = 'Greys'
+        vmin = -0.5*vals[-1]
 
     # Plotting parameters
-    # All this is to get a particular look with a scatterplot
     # DPI and fig_dim don't matter much;
     #   they are defined so we always get a 2000x2000 pixel image
     # But there is an interaction between DPI and marker size
@@ -117,58 +152,52 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     # fig_dim : figure dimension in inches
     # markershape : Shape of marker in scatterplot. 's' = square
     # markersize : Marker size in square points
-    # alphaval : Alpha channel value for markers
-    # min_frac : controls minimum value for colormap of scatterplot
-    #   min_frac = 0 : full colormap spectrum is used
-    #   min_frac = 1 : half of colormap spectrum is used
+    # vmin : Value that minimum of colormap corresponds to
     DPI = 100
     fig_dim = 2000.0/DPI
-    markershape = 's'
-    markersize = (3.1*72.0/DPI)**2 # 3.1 pixels wide?
-    alphaval = 1.0
-    # something other than white is min
-    specialmaps = ['cool','plasma']
+    markersize = lambda mw : (mw*72.0/DPI)**2
+    markershape = 's' if standard else 'o'
+    marker_width = 3.1 if standard else 10.0 # pixels
+    facecolor = 'w' if standard else '0.10' # grayscale
 
-    # Every once in a while, add a pop of color
-    if np.random.rand() < 0.25:
-        # These colormaps can use the full spectrum
-        colormap = random.choice(specialmaps)
-        min_frac = 0
-    else:
-        # idea here: if the scatterplot takes up a fair amount of the plot area,
-        # allow a finer color gradation
-        colormap = 'Greys'
-        min_frac = max(0, 0.70 - len(vals)/float(n_grid**2))
+#    # Every once in a while, add a pop of color
+#    if np.random.rand() < 0.25:
+#        # These colormaps can use the full spectrum
+#        colormap = random.choice(specialmaps)
+#        min_frac = 0
+#    else:
+#        # idea here: if the scatterplot takes up a fair amount of the plot area,
+#        # allow a finer color gradation
+#        colormap = 'Greys'
+#        min_frac = max(0, 0.70 - area_frac)
+#    # set minimum value for setting colormap
+#    # min_frac : controls minimum value for colormap of scatterplot
+#    #   min_frac = 0 : full colormap spectrum is used
+#    #   min_frac = 1 : half of colormap spectrum is used
+#    minv = -min_frac*max(vals)
 
-    # Map density values thru log
-    # (log of density seems to produce more interesting image);
-    # set minimum value for setting colormap
-    logvals = np.log(vals)
-    minv    = -min_frac*max(logvals)
-
-    # order the points so that darker points (higher values) are plotted last and on top
-    ordering = np.argsort(logvals)
-    rows = rows[ordering]
-    cols = cols[ordering]
-    logvals = logvals[ordering]
-
-    if verbose:
-        print("Plotting")
-
-    fig = plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI)
-    plt.scatter(cols, rows, c=logvals,
-        s=markersize,
-        marker=markershape,
-        linewidths=0,
-        cmap=colormap,
-        vmin=minv,
-        norm=None,
-        alpha=alphaval)
+    plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI)
     plt.axis([0,n_grid,0,n_grid], 'equal')
+    plt.axis('off')
     plt.xticks([])
     plt.yticks([])
-    plt.axis('off')
-    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/6)
+    if not standard:
+        plt.scatter(cols, rows, c=vals,
+            s=markersize(marker_width*1.8),
+            marker=markershape,
+            cmap=colormap,
+            vmin=vmin,
+            alpha=0.2,
+            linewidths=0)
+    plt.scatter(cols, rows, c=vals,
+        s=markersize(marker_width),
+        marker=markershape,
+        cmap=colormap,
+        vmin=vmin,
+        alpha=1.0,
+        linewidths=0)
+    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/6, 
+        facecolor=facecolor)
     plt.close() # to avoid memory issues in a loop
     return
 
