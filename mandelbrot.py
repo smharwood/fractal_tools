@@ -4,9 +4,7 @@ SM Harwood
 """
 import random
 import numpy as np
-from scipy import spatial
 import matplotlib.pyplot as plt
-
 
 def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
     """ Sample complex plane, look for an interesting spot to zoom in """
@@ -40,8 +38,8 @@ def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
             continue
         in_set = samples[sample_values >= max_iter]
         not_in_set = samples[sample_values < max_iter]
-        distances = spatial.distance_matrix(in_set.reshape(-1,1), 
-                                            not_in_set.reshape(-1,1))
+        distances = distance_matrix(in_set.reshape(-1,1), 
+                                    not_in_set.reshape(-1,1))
         # find a point in mandelbrot set 
         # thats close to points not in set
         best_index = np.argmin(np.mean(distances, axis=1))
@@ -75,7 +73,6 @@ def mandelbrot_iteration_optimized(points, max_iter):
         z[notdone] = z[notdone]**2 + points[notdone]
     return output
 
-
 def plot(density, imagename):
     """ Plot it """
     # Plotting parameters
@@ -83,8 +80,8 @@ def plot(density, imagename):
     DPI = 100
     fig_dim = (2.0*n_grid)/DPI
     
-    cms = ['BuPu', 'twilight_shifted', 'viridis', 'cividis', \
-            'plasma', 'plasma_r', 'inferno', 'inferno_r', 'cool']
+    cms = ['BuPu', 'twilight_shifted', 'viridis', 'cividis', 'cool', \
+            'plasma', 'plasma_r', 'inferno', 'inferno_r', 'spring_r']
     cm = random.choice(cms)
 
     # imshow
@@ -97,6 +94,19 @@ def plot(density, imagename):
     plt.savefig(imagename, bbox_inches='tight', pad_inches=0)
     plt.close()
     return
+
+def distance_matrix(x,y):
+    """ 
+    To avoid requiring scipy, just copy essence of distance_matrix from source 
+    Parameters
+    x : (M, K) ndarray - Matrix of M vectors in K dimensions.
+    y : (N, K) ndarray - Matrix of N vectors in K dimensions.
+    Returns
+    result : (M, N) ndarray - Matrix containing the distance from every vector 
+        in `x` to every vector in `y`.
+    """
+    # don't forget the abs in order to handle complex vectors
+    return (np.sum(np.abs(y[np.newaxis,:,:] - x[:,np.newaxis,:])**2, axis=-1))**0.5
 
 
 if __name__ == "__main__":
