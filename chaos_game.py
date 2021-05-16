@@ -107,7 +107,7 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     plotter(density, image_name)
     return
 
-def plotter(density, image_name):
+def plotter(density, image_name, default_cm=None):
     """ Plot in a specific way """
 
     # Colormaps where something other than white is min
@@ -131,7 +131,12 @@ def plotter(density, image_name):
     area_frac = len(vals)/float(n_grid**2)
     standard = True
     vmin = 0.0
-    if area_frac < 0.01:
+    if default_cm is not None:
+        # Use the colormap that was given;
+        # like classic bot, use only part of the range
+        colormap = default_cm
+        vmin = -0.5*vals[-1]
+    elif area_frac < 0.01:
         # Probably uninteresting. Punch it up!
         colormap = random.choice(specialmaps2)
         standard = False

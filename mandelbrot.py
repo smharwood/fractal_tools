@@ -8,19 +8,17 @@ import matplotlib.pyplot as plt
 
 def mandelbrot_zoom(image_name='mbrot_zoom.png', max_iter=100):
     """ Sample complex plane, look for an interesting spot to zoom in """
-   
-    # ZOOM
-    level = np.random.randint(4,7)
-    print(level)
-    n_samples = int(np.sqrt(100))
-    # these work fairly well
-    best_point = -1.0 + (1/3.0)*1j
-    best_point = -0.5 + 0.5*1j
     # TODO: adaptively zoom;
     # maybe zoom more aggressively when there is more of the set nearby
-    # or maybe zoom in on points in the set?
-    best_point = -1.0 + 0.0*1j
-    zoom = 0.7
+
+    # ZOOM
+    level = 6
+    print(level)
+    n_samples = int(np.sqrt(100))
+    # Sample along the circumference of the "main bulb"
+    main_bulb = lambda theta: 0.5*np.exp(theta*1j) - 0.25*np.exp(2*theta*1j)
+    best_point = main_bulb(np.random.uniform(2*np.pi))
+    zoom = 0.2
     zoom_factor = 2.0
     zoom_levels = 20
     for i in range(zoom_levels):
