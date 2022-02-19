@@ -13,9 +13,21 @@ Plots and saves to PNG
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+try:
+    import fractal_loop as floop
+    _USABLE_FORTRAN = True
+except ImportError:
+    _USABLE_FORTRAN = False
+
+
+def generate_and_plot(image_name=None, n_iter=5e5, verbose=False):
+    """ Generate a fractal and save"""
+    density = generate_chaos(image_name, n_iter, verbose)
+    plotter(density, image_name)
+    return
 
 def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
-    """ Play the chaos game / generate a fractal"""
+    """ Play the chaos game / generate a fractal, return raw array """
     if image_name is None:
         # For reproducibility while testing
         seed = np.random.randint(1000) #10 47 88 161 611 870
@@ -33,7 +45,7 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     n_grid = 1000
     
     # Set basis points of the game - RANDOM
-    basis = np.random.rand(n_basisPoints,n_dimensions)
+    basis = np.random.rand(n_basisPoints, n_dimensions)
 
     # Shift and scale basis points to fill unit hypercube in at least one dimension
     # Calculate minimum and maximum (over all basis points) coordinate value 
@@ -56,19 +68,13 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     # Set fraction of distance to each basis point to move - RANDOM
     moveFrac = np.random.rand(n_basisPoints)
 
+    # Create matrix to hold the density data
+    density = np.zeros((n_grid,n_grid))
+
     if verbose:
         print("Basis: " + str(basis))
         print("Move Fractions: "+str(moveFrac))
         print("Probabilities: "+str(cumulProb))
-
-    # Initial point: can be any point in unit hypercube,
-    # but first basis point works fine
-    point = basis[0]
-
-    # Create matrix to hold the density data
-    density = np.zeros((n_grid,n_grid))
-    
-    if verbose:
         print("Starting chaos game iteration")
 
     # Choose sequence of basis points according to the weighting prob
@@ -83,32 +89,35 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
                           for i in range(1,len(basis_sequence_full)) \
                           if basis_sequence_full[i] != basis_sequence_full[i-1] ]
 
-    # Generate more points in loop
-    for i in basis_sequence:
-        # Calculate point:
-        #   some fraction of distance between previous point and basis point i
-        point = (1-moveFrac[i])*point + moveFrac[i]*basis[i]
+    if _USABLE_FORTRAN:
+        # Call compiled Fortran to do loop real fast
+        density = floop.get_density(n_grid, basis_sequence, moveFrac, basis)
+    else:
+        # Generate more points in loop
+        # Initial point: can be any point in unit hypercube,
+        # but first basis point works fine
+        point = basis[0]
+        for i in basis_sequence:
+            # Calculate point:
+            #   some fraction of distance between previous point and basis point i
+            point = (1-moveFrac[i])*point + moveFrac[i]*basis[i]
 
-        # Copy to density matrix;
-        # increment number of points occurring in the grid point of interest
-        # Since the components of the points are all in the range [0,1],
-        # floor the product of the point coordinate with the number of grid points
-        # (and make sure that it's in the index range)
-        x_coor = int(min(n_grid-1, np.floor(n_grid*point[0])))
-        y_coor = int(min(n_grid-1, np.floor(n_grid*point[1])))
-        density[y_coor][x_coor] += 1
-    # end k loop
+            # Copy to density matrix;
+            # increment number of points occurring in the grid point of interest
+            # Since the components of the points are all in the range [0,1],
+            # floor the product of the point coordinate with the number of grid points
+            # (and make sure that it's in the index range)
+            x_coor = int(min(n_grid-1, np.floor(n_grid*point[0])))
+            y_coor = int(min(n_grid-1, np.floor(n_grid*point[1])))
+            density[y_coor][x_coor] += 1
+        # end k loop
     if verbose:
         print("Done iterating")
 
-    # Plot
-    if verbose:
-        print("Plotting")
-    plotter(density, image_name)
-    return
+    return density
 
-def plotter(density, image_name, default_cm=None):
-    """ Plot in a specific way """
+def plotter(density, image_name, default_cm=None, pixels=2000, pad_inches=None):
+    """ Plot in a specific way and save """
 
     # Colormaps where something other than white is min
     specialmaps1 = ['plasma', 'cool']
@@ -159,34 +168,22 @@ def plotter(density, image_name, default_cm=None):
     # markersize : Marker size in square points
     # vmin : Value that minimum of colormap corresponds to
     DPI = 100
-    fig_dim = 2000.0/DPI
+    fig_dim = float(pixels)/DPI
     markersize = lambda mw : (mw*72.0/DPI)**2
     markershape = 's' if standard else 'o'
     marker_width = 3.1 if standard else 10.0 # pixels
     facecolor = 'w' if standard else '0.10' # grayscale
+    if pad_inches is None:
+        pad_inches = fig_dim/6
 
-#    # Every once in a while, add a pop of color
-#    if np.random.rand() < 0.25:
-#        # These colormaps can use the full spectrum
-#        colormap = random.choice(specialmaps)
-#        min_frac = 0
-#    else:
-#        # idea here: if the scatterplot takes up a fair amount of the plot area,
-#        # allow a finer color gradation
-#        colormap = 'Greys'
-#        min_frac = max(0, 0.70 - area_frac)
-#    # set minimum value for setting colormap
-#    # min_frac : controls minimum value for colormap of scatterplot
-#    #   min_frac = 0 : full colormap spectrum is used
-#    #   min_frac = 1 : half of colormap spectrum is used
-#    minv = -min_frac*max(vals)
-
+    # Plot
     plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI)
     plt.axis([0,n_grid,0,n_grid], 'equal')
     plt.axis('off')
     plt.xticks([])
     plt.yticks([])
     if not standard:
+        # idea is to plot twice
         plt.scatter(cols, rows, c=vals,
             s=markersize(marker_width*1.8),
             marker=markershape,
@@ -201,11 +198,11 @@ def plotter(density, image_name, default_cm=None):
         vmin=vmin,
         alpha=1.0,
         linewidths=0)
-    plt.savefig(image_name, bbox_inches='tight', pad_inches=fig_dim/6, 
+    plt.savefig(image_name, bbox_inches='tight', pad_inches=pad_inches, 
         facecolor=facecolor)
     plt.close() # to avoid memory issues in a loop
     return
 
 
 if __name__ == "__main__":
-    generate_chaos(None, 5e5, True)
+    generate_and_plot(None, 5e5, True)
