@@ -19,21 +19,26 @@ try:
 except ImportError:
     _USABLE_FORTRAN = False
 
-
-def generate_and_plot(image_name=None, n_iter=5e5, verbose=False):
-    """ Generate a fractal and save"""
-    density = generate_chaos(image_name, n_iter, verbose)
-    plotter(density, image_name)
+def test(seed=None):
+    # For reproducibility / keep track of seeds
+    if seed is None:
+        seed = np.random.randint(1000)
+    np.random.seed(seed)
+    image_name = "fractal-" + str(seed) + ".png"
+    generate_and_plot(image_name, 5e5, zoom=True, verbose=True)
     return
 
-def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
-    """ Play the chaos game / generate a fractal, return raw array """
-    if image_name is None:
-        # For reproducibility while testing
-        seed = np.random.randint(1000) #10 47 88 161 611 870
-        np.random.seed(seed)
-        image_name = 'fractal-' + str(seed) + '.png'
+# TODO: figure out better zoom...
+# maybe find largest box that fits in convex hull of basis points?
 
+def generate_and_plot(image_name, n_iter=5e5, zoom=False, verbose=False):
+    """ Generate a fractal and save"""
+    density = generate_chaos(n_iter, zoom, verbose)
+    plotter(density, image_name, zoom)
+    return
+
+def generate_chaos(n_iter=5e5, zoom=False, verbose=False):
+    """ Play the chaos game / generate a fractal, return raw array """
     # Sizing parameters
     # n_dimensions controls dimension of the space
     # n_iter controls how many points are generated
@@ -42,7 +47,10 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
     n_dimensions = 2
     n_iter = int(n_iter)
     n_basisPoints = np.random.randint(3,7)
-    n_grid = 1000
+    if zoom:
+        n_grid = 2000
+    else:
+        n_grid = 1000
     
     # Set basis points of the game - RANDOM
     basis = np.random.rand(n_basisPoints, n_dimensions)
@@ -116,13 +124,37 @@ def generate_chaos(image_name=None, n_iter=5e5, verbose=False):
 
     return density
 
-def plotter(density, image_name, default_cm=None, pixels=2000, pad_inches=None):
+def plotter(density, image_name, 
+        zoom=False,
+        default_cm=None,
+        pixels=2000,
+        pad_inches=None
+    ):
     """ Plot in a specific way and save """
 
     # Colormaps where something other than white is min
     specialmaps1 = ['plasma', 'cool']
     specialmaps2 = ['spring', 'cool_r', 'spring_r']
     n_grid = density.shape[0]
+
+    if zoom:
+        # Zoom 2x in on the area of maximum density
+        r,c = np.unravel_index(np.argmax(density), density.shape)
+        rmin = r - n_grid//4
+        rmax = r + n_grid//4
+        cmin = c - n_grid//4
+        cmax = c + n_grid//4
+        # Shift to be within indices of density
+        rshift = max(0, 0 - rmin) - max(0, rmax - (n_grid-1))
+        rmin += rshift
+        rmax += rshift
+        cshift = max(0, 0 - cmin) - max(0, cmax - (n_grid-1))
+        cmin += cshift
+        cmax += cshift
+        # view into density
+        density = density[rmin:rmax, cmin:cmax]
+        n_grid = density.shape[0]
+        pad_inches = 0
 
     # sparse version of density matrix is useful;
     # also, map thru log
@@ -149,6 +181,7 @@ def plotter(density, image_name, default_cm=None, pixels=2000, pad_inches=None):
         # Probably uninteresting. Punch it up!
         colormap = random.choice(specialmaps2)
         standard = False
+        if pad_inches is None: pad_inches = 0
     elif area_frac < 0.10:
         colormap = random.choice(specialmaps1)
     else:
@@ -175,10 +208,12 @@ def plotter(density, image_name, default_cm=None, pixels=2000, pad_inches=None):
     facecolor = 'w' if standard else '0.10' # grayscale
     if pad_inches is None:
         pad_inches = fig_dim/6
+        # pad_inches = 0
 
     # Plot
     plt.figure(figsize=(fig_dim,fig_dim), dpi=DPI)
-    plt.axis([0,n_grid,0,n_grid], 'equal')
+    # plt.axis([0,n_grid,0,n_grid], 'equal')
+    plt.axis([0,n_grid,0,n_grid])
     plt.axis('off')
     plt.xticks([])
     plt.yticks([])
@@ -205,4 +240,4 @@ def plotter(density, image_name, default_cm=None, pixels=2000, pad_inches=None):
 
 
 if __name__ == "__main__":
-    generate_and_plot(None, 5e5, True)
+    test()
