@@ -32,7 +32,7 @@ def test(seed=None):
 # maybe find largest box that fits in convex hull of basis points?
 
 def generate_and_plot(image_name, n_iter=5e5, zoom=False, verbose=False):
-    """ Generate a fractal and save"""
+    """ Generate a fractal and save """
     density = generate_chaos(n_iter, zoom, verbose)
     plotter(density, image_name, zoom)
     return
@@ -181,7 +181,8 @@ def plotter(density, image_name,
         # Probably uninteresting. Punch it up!
         colormap = random.choice(specialmaps2)
         standard = False
-        if pad_inches is None: pad_inches = 0
+        if pad_inches is None:
+            pad_inches = 0
     elif area_frac < 0.10:
         colormap = random.choice(specialmaps1)
     else:
